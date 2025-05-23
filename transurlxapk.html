@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Enlaces a APK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        }
+        .download-btn {
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg text-white">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-3xl mx-auto text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Conversor de Enlaces a APK</h1>
+            <p class="text-xl opacity-90">Convierte cualquier enlace web en un archivo APK descargable para Android o Windows</p>
+        </div>
+
+        <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-6 shadow-2xl max-w-2xl mx-auto">
+            <div class="mb-6">
+                <label for="urlInput" class="block text-lg font-medium mb-2">Ingresa tu URL</label>
+                <div class="flex">
+                    <input type="url" id="urlInput" placeholder="https://ejemplo.com" 
+                           class="flex-grow px-4 py-3 rounded-l-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <button id="convertBtn" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-r-lg font-medium transition-colors">
+                        Convertir
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultContainer" class="hidden">
+                <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+                    <!-- QR Code for PC -->
+                    <div id="pcSection" class="text-center p-4 bg-white bg-opacity-20 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">Escanea desde PC</h3>
+                        <div id="qrcode" class="mx-auto bg-white p-2 rounded"></div>
+                        <p class="mt-3 text-sm opacity-80">Usa tu móvil para escanear este código</p>
+                    </div>
+
+                    <!-- Mobile Download Section -->
+                    <div id="mobileSection" class="text-center p-4 bg-white bg-opacity-20 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">Descarga directa</h3>
+                        <button id="downloadApkBtn" class="download-btn bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-medium mb-3 w-full">
+                            Descargar APK para Android
+                        </button>
+                        <button id="downloadExeBtn" class="download-btn bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium w-full">
+                            Descargar para Windows
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-16 max-w-2xl mx-auto bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-6">
+            <h2 class="text-2xl font-bold mb-4">¿Cómo funciona?</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white bg-opacity-20 p-4 rounded-lg text-center">
+                    <div class="text-4xl mb-3 floating">1</div>
+                    <h3 class="font-semibold mb-2">Ingresa tu URL</h3>
+                    <p class="text-sm opacity-90">Pega el enlace que deseas convertir en APK</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded-lg text-center">
+                    <div class="text-4xl mb-3 floating">2</div>
+                    <h3 class="font-semibold mb-2">Conversión automática</h3>
+                    <p class="text-sm opacity-90">Nuestro sistema procesará el enlace</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded-lg text-center">
+                    <div class="text-4xl mb-3 floating">3</div>
+                    <h3 class="font-semibold mb-2">Descarga tu APK</h3>
+                    <p class="text-sm opacity-90">Obtén tu archivo instalable</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const convertBtn = document.getElementById('convertBtn');
+            const urlInput = document.getElementById('urlInput');
+            const resultContainer = document.getElementById('resultContainer');
+            const downloadApkBtn = document.getElementById('downloadApkBtn');
+            const downloadExeBtn = document.getElementById('downloadExeBtn');
+            const qrcodeDiv = document.getElementById('qrcode');
+            const pcSection = document.getElementById('pcSection');
+            const mobileSection = document.getElementById('mobileSection');
+
+            // Detectar si es móvil
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            // Mostrar/ocultar secciones según el dispositivo
+            if (isMobile) {
+                pcSection.classList.add('hidden');
+            } else {
+                mobileSection.classList.add('hidden');
+            }
+
+            convertBtn.addEventListener('click', convertUrl);
+            downloadApkBtn.addEventListener('click', downloadApk);
+            downloadExeBtn.addEventListener('click', downloadExe);
+
+            function convertUrl() {
+                const url = urlInput.value.trim();
+                
+                if (!url) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Por favor ingresa una URL válida',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                // Validar URL
+                try {
+                    new URL(url);
+                } catch (e) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'La URL ingresada no es válida',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                // Mostrar resultado
+                resultContainer.classList.remove('hidden');
+                
+                // Generar QR
+                QRCode.toCanvas(qrcodeDiv, url, {
+                    width: 150,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                    }
+                }, function(error) {
+                    if (error) console.error(error);
+                });
+
+                // Configurar botones de descarga
+                downloadApkBtn.onclick = function() {
+                    generateApk(url);
+                };
+
+                downloadExeBtn.onclick = function() {
+                    generateExe(url);
+                };
+            }
+
+            function generateApk(url) {
+                Swal.fire({
+                    title: 'Generando APK',
+                    html: 'Estamos preparando tu archivo APK...',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                }).then(() => {
+                    // En una implementación real, aquí iría la llamada al backend para generar el APK
+                    // Para este ejemplo, simulamos la descarga
+                    const link = document.createElement('a');
+                    link.href = `data:application/vnd.android.package-archive;charset=utf-8,${encodeURIComponent(url)}`;
+                    link.download = 'aplicacion_generada.apk';
+                    link.click();
+                    
+                    Swal.fire({
+                        title: '¡Listo!',
+                        text: 'Tu APK se ha generado correctamente',
+                        icon: 'success',
+                        confirmButtonText: 'Descargar'
+                    });
+                });
+            }
+
+            function generateExe(url) {
+                Swal.fire({
+                    title: 'Generando EXE',
+                    html: 'Estamos preparando tu archivo para Windows...',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                }).then(() => {
+                    // Simulación de descarga
+                    const link = document.createElement('a');
+                    link.href = `data:application/octet-stream;charset=utf-8,${encodeURIComponent(url)}`;
+                    link.download = 'aplicacion_generada.exe';
+                    link.click();
+                    
+                    Swal.fire({
+                        title: '¡Listo!',
+                        text: 'Tu archivo EXE se ha generado correctamente',
+                        icon: 'success',
+                        confirmButtonText: 'Descargar'
+                    });
+                });
+            }
+
+            // Permitir también usar Enter para convertir
+            urlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    convertUrl();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
